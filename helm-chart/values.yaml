@@ -1,0 +1,16 @@
+replicaCount: 1
+
+image:
+  repository: laravel-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+containerPort: 8080
+
+selectorLabels:
+  app: laravel-app
