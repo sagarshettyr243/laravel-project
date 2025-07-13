@@ -12,8 +12,8 @@ The architecture supports both **local development** and **cloud-ready environme
 - Uses Docker Compose to run Laravel app with MySQL, Redis, and MongoDB.
 - To verify the MongoDB and ElasticSearch conatiner
   Command:
-  docker ps | grep mongo
-  docker ps | grep elasticsearch
+  - docker ps | grep mongo
+  - docker ps | grep elasticsearch
   
 - `.env` file controls local config.
 - Ideal for rapid iteration and local testing.
