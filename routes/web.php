@@ -13,6 +13,18 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
+use Illuminate\Support\Facades\DB;
+
+Route::get('/mongo-test', function () {
+    try {
+        DB::connection('mongodb')->collection('test_collection')->insert([
+            'name' => 'Sagar',
+            'message' => 'MongoDB connection successful!',
+            'timestamp' => now(),
+        ]);
+
+        return 'Inserted test document successfully into MongoDB.';
+    } catch (\Exception $e) {
+        return 'MongoDB Error: ' . $e->getMessage();
+    }
 });

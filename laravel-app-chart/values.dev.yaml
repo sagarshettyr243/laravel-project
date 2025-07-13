@@ -1,0 +1,100 @@
+replicaCount: 1
+
+image:
+  repository: your-registry/laravel-app
+  tag: dev-latest
+  pullPolicy: IfNotPresent
+
+containerPort: 9000
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 9000
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "100m"
+    memory: "128Mi"
+
+env:
+  - name: APP_ENV
+    value: development
+  - name: DB_CONNECTION
+    value: mysql
+  - name: DB_HOST
+    value: dev-mysql
+  - name: DB_PORT
+    value: "3306"
+  - name: DB_DATABASE
+    value: laravel_dev
+
+configMap:
+  enabled: true
+  data:
+    APP_NAME: "LaravelDev"
+    APP_DEBUG: "true"
+    LOG_CHANNEL: "stack"
+    QUEUE_CONNECTION: "redis"
+    REDIS_HOST: "dev-redis"
+    MONGO_URI: "mongodb://root:secret@dev-mongodb:27017"
+    ELASTICSEARCH_URI: "http://dev-elasticsearch:9200"
+
+secrets:
+  enabled: true
+  data:
+    DB_USERNAME: "root"
+    DB_PASSWORD: "secret"
+
+volumeMounts:
+  - name: logs
+    mountPath: /var/www/storage/logs
+
+volumes:
+  - name: logs
+    persistentVolumeClaim:
+      claimName: laravel-logs-dev
+
+pvc:
+  enabled: true
+  name: laravel-logs-dev
+  accessModes: ["ReadWriteOnce"]
+  storage: 512Mi
+
+autoscaling:
+  enabled: false
+
+probes:
+  readiness:
+    path: /
+    port: 9000
+    initialDelaySeconds: 3
+    timeoutSeconds: 2
+  liveness:
+    path: /
+    port: 9000
+    initialDelaySeconds: 5
+    timeoutSeconds: 3
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: dev.laravel.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: laravel-dev-tls
+      hosts:
+        - dev.laravel.local

@@ -1,0 +1,93 @@
+replicaCount: 2
+
+image:
+  repository: your-registry/laravel-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+containerPort: 9000
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 9000
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "300m"
+    memory: "256Mi"
+
+env:
+  - name: APP_ENV
+    value: production
+  - name: DB_CONNECTION
+    value: mysql
+
+configMap:
+  enabled: true
+  data:
+    APP_NAME: "LaravelApp"
+    CACHE_DRIVER: "file"
+    LOG_CHANNEL: "stack"
+
+secrets:
+  enabled: true
+  data:
+    DB_USERNAME: "root"
+    DB_PASSWORD: "secret"
+
+volumeMounts:
+  - name: logs
+    mountPath: /var/www/storage/logs
+
+volumes:
+  - name: logs
+    persistentVolumeClaim:
+      claimName: laravel-logs-pvc
+
+pvc:
+  enabled: true
+  name: laravel-logs-pvc
+  accessModes: ["ReadWriteOnce"]
+  storage: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+probes:
+  readiness:
+    path: /
+    port: 9000
+    initialDelaySeconds: 5
+    timeoutSeconds: 3
+  liveness:
+    path: /
+    port: 9000
+    initialDelaySeconds: 10
+    timeoutSeconds: 5
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: laravel.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: laravel-tls
+      hosts:
+        - laravel.local

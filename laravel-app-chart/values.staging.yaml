@@ -1,0 +1,103 @@
+replicaCount: 2
+
+image:
+  repository: your-registry/laravel-app
+  tag: staging-latest
+  pullPolicy: IfNotPresent
+
+containerPort: 9000
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 9000
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "200m"
+    memory: "256Mi"
+
+env:
+  - name: APP_ENV
+    value: staging
+  - name: DB_CONNECTION
+    value: mysql
+  - name: DB_HOST
+    value: staging-mysql
+  - name: DB_PORT
+    value: "3306"
+  - name: DB_DATABASE
+    value: laravel_staging
+
+configMap:
+  enabled: true
+  data:
+    APP_NAME: "LaravelStaging"
+    APP_DEBUG: "false"
+    LOG_CHANNEL: "stack"
+    QUEUE_CONNECTION: "redis"
+    REDIS_HOST: "staging-redis"
+    MONGO_URI: "mongodb://root:secret@staging-mongodb:27017"
+    ELASTICSEARCH_URI: "http://staging-elasticsearch:9200"
+
+secrets:
+  enabled: true
+  data:
+    DB_USERNAME: "root"
+    DB_PASSWORD: "secret"
+
+volumeMounts:
+  - name: logs
+    mountPath: /var/www/storage/logs
+
+volumes:
+  - name: logs
+    persistentVolumeClaim:
+      claimName: laravel-logs-staging
+
+pvc:
+  enabled: true
+  name: laravel-logs-staging
+  accessModes: ["ReadWriteOnce"]
+  storage: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 80
+
+probes:
+  readiness:
+    path: /
+    port: 9000
+    initialDelaySeconds: 5
+    timeoutSeconds: 3
+  liveness:
+    path: /
+    port: 9000
+    initialDelaySeconds: 10
+    timeoutSeconds: 5
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: staging.laravel.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: laravel-staging-tls
+      hosts:
+        - staging.laravel.local

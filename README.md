@@ -1,48 +1,92 @@
-# Laravel 10 Boilerplate
+# Laravel Kubernetes Deployment (Simulated CI/CD)
 
-The goal of this project is to serve as a boilerplate for Laravel 10
-utilizing light-weight alpine linux images for nginx and php 8.2 (fpm).
+This repository contains a Laravel 10 application with production-grade deployment configurations using Docker, Kubernetes (Helm), and a simulated CI/CD pipeline built with Jenkins.
 
-Stack:
+---
 
-- app @ php:8.2-fpm-alpine
-- nginx @ nginx:alpine
-- mysql @ mysql
-- redis @ redis:alpine
-- worker-local @ php:8.2-alpine3.16
+## Overview
 
-## TODO
+The architecture supports both **local development** and **cloud-ready environments**, including simulated deployment to **development**, **staging**, and **production** setups.
 
-- add a basic, highly optional seeder for user
-- hook up worker-local so you have a queue to play with
-- create an example job/worker you might co-locate on same hardware
-- maybe add some ci/cd and even k8s stuff as an example to scale out workers/nginx/edges
+### Local Environment
+- Uses Docker Compose to run Laravel app with MySQL, Redis, and MongoDB.
+- `.env` file controls local config.
+- Ideal for rapid iteration and local testing.
 
-## Notes
+### 🛠️ Kubernetes Environments
+- Helm chart defines configurable deployments via `values.dev.yaml`, `values.staging.yaml`, and `values.yaml` (production).
+- PVC, Ingress, ConfigMaps, and Secrets are used for runtime customization.
+- Simulated EKS cluster assumed — no real AWS infrastructure is needed.
 
-- docker/app docker/nginx will rely on supervisor to maintain their processes, yawn
-- Please see .env "#PORT FORWARDS" before starting in docker-compose
--
+---
 
-## Installation
+## CI/CD Workflow (Simulated via Jenkins)
 
-The default docker-compose config here exposes ports if you want them.  See .env's "PORT FORWARDS"
+The Jenkins pipeline contains the following **stages**:
 
-```shell
-cp ./env.example ./.env
-docker-compose up --build -d app nginx mysql
+### Test
+- Runs PHPUnit tests on **Merge Requests** to `main` branch.
+- If tests fail, the merge is blocked.
 
-#docker-compose exec app php artisan migrate
-```
+# ⚙️Buid
+- Triggered only after merge to `main`.
+- Builds Docker image from Laravel app.
+- Tags and simulates push to a mocked ECR repository.
 
-You can now access http://localhost:8022 (or whatever your FORWARD_NGINX_PORT is).
+# Deploy
+- Simulates deployment to Kubernetes via Helm for:
+  - `development` (uses `values.dev.yaml`)
+  - `staging` (uses `values.staging.yaml`)
+  - `production` (uses `values.yaml`)
 
-Please keep ./composer.lock in docker/app container context, for example:
+- All deployments are dry-run or placeholder actions — no real EKS/ECR credentials are required.
 
-```shell
-docker-compose exec -u root app /bin/sh
-# then...
-# COMPOSER_MEMORY_LIMIT=-1 app composer install
-# COMPOSER_MEMORY_LIMIT=-1 app composer require awesome/package_etc
-# ymmv w/ COMPOSER_MEMORY_LIMIT maybe try without
-```
+---
+
+# Getting Started
+
+## 1. Run Project Locally via Docker Compose
+
+```bash
+# Start containers
+docker-compose up -d
+
+# Run migrations
+docker-compose exec app php artisan migrate
+
+# Access Laravel
+http://localhost:9000
+
+2. Build Docker Image Mnaually
+
+docker build -t laravel-app .
+docker tag laravel-app:latest your-ecr/laravel-app:latest
+echo "Simulating push:"
+echo "docker push your-ecr/laravel-app:latest"
+
+3. Deploy using Helm(Simualated)
+
+# Development environment
+helm upgrade --install laravel-dev ./laravel-app-chart -f values.dev.yaml
+
+# Staging environment
+helm upgrade --install laravel-staging ./laravel-app-chart -f values.staging.yaml
+
+# Production environment
+helm upgrade --install laravel-prod ./laravel-app-chart -f values.yaml
+
+Directory like below structure way:
+
+laravel-app-chart/
+├── templates/           # Helm deployment templates
+├── values.yaml          # Production config
+├── values.dev.yaml      # Dev config
+├── values.staging.yaml  # Staging config
+
+Jenkinsfile              # Simulated CI/CD pipeline
+Dockerfile               # Laravel app Docker build
+.env                     # Local env
+.env.production          # Production env
+.env.dev                 # Development env
+.env.staging             # Staging env
+

@@ -1,0 +1,10 @@
+{{- if .Values.configMap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "laravel-app-chart.fullname" . }}-config
+data:
+  {{- range $key, $val := .Values.configMap.data }}
+  {{ $key }}: "{{ $val }}"
+  {{- end }}
+{{- end }}

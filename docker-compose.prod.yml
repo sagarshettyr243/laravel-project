@@ -1,0 +1,71 @@
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: ./prod/php/Dockerfile
+    container_name: prod-app
+    restart: always
+    env_file:
+      - .env.production
+    volumes:
+      - ./:/var/www
+    networks:
+      - prod
+
+  nginx:
+    image: nginx:alpine
+    container_name: prod-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./:/var/www
+      - ./prod/nginx:/etc/nginx/conf.d/
+    networks:
+      - prod
+
+  mongodb:
+    image: mongo:6.0
+    container_name: prod-mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: secret
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - prod
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: prod-elasticsearch
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - prod
+
+  worker-local:
+    build:
+      context: ./
+      dockerfile: ./prod/worker-local/Dockerfile
+    container_name: prod-worker
+    restart: always
+    env_file:
+      - .env.production
+    volumes:
+      - ./:/var/www
+    networks:
+      - prod
+
+volumes:
+  mongo_data:
+  es_data:
+
+networks:
+  prod:
+    driver: bridge

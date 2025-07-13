@@ -78,6 +78,13 @@ return [
             'sslmode' => 'prefer',
         ],
 
+        'mongodb' => [
+    'driver'   => 'mongodb',
+    'dsn'      => env('MONGO_URI', 'mongodb://localhost:27017'),
+    'database' => env('DB_DATABASE', 'laravel'),
+    ],
+ 
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DATABASE_URL'),
